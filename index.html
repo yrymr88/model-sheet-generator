@@ -241,42 +241,21 @@
   .apikey-wrap {
     margin: 0 16px 18px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--accent2);
     border-radius: 12px;
     overflow: hidden;
-  }
-
-  .apikey-header {
+    padding: 14px 16px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 16px;
-    cursor: pointer;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  .apikey-header span {
+  .apikey-label {
     font-size: 0.62rem;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--accent2);
   }
-
-  .apikey-header .arrow {
-    font-size: 0.65rem;
-    color: var(--muted);
-    transition: transform 0.2s;
-  }
-
-  .apikey-header.open .arrow { transform: rotate(180deg); }
-
-  .apikey-body {
-    display: none;
-    padding: 0 16px 14px;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .apikey-body.open { display: flex; }
 
   .apikey-note {
     font-size: 0.62rem;
@@ -432,18 +411,12 @@
 
   <!-- API KEY -->
   <div class="apikey-wrap">
-    <div class="apikey-header" id="apikey-toggle">
-      <span>APIキー設定</span>
-      <span class="arrow">▼</span>
+    <div class="apikey-label">🔑 Anthropic APIキー（必須）</div>
+    <div class="apikey-note">
+      端末内にのみ保存されます。<br>
+      <a href="https://console.anthropic.com" target="_blank">console.anthropic.com で取得 →</a>
     </div>
-    <div class="apikey-body" id="apikey-body">
-      <div class="apikey-note">
-        Anthropic APIキーを入力してください。<br>
-        端末内にのみ保存されます。<br>
-        <a href="https://console.anthropic.com" target="_blank">console.anthropic.com で取得</a>
-      </div>
-      <input class="field-input" id="api-key" type="password" placeholder="sk-ant-...">
-    </div>
+    <input class="field-input" id="api-key" type="password" placeholder="sk-ant-...">
   </div>
 
 </div>
@@ -472,19 +445,6 @@
   // Restore API key
   const savedKey = localStorage.getItem('anthropic_api_key');
   if (savedKey) document.getElementById('api-key').value = savedKey;
-
-  // Save API key on change
-  document.getElementById('api-key').addEventListener('change', e => {
-    localStorage.setItem('anthropic_api_key', e.target.value.trim());
-  });
-
-  // API key accordion
-  document.getElementById('apikey-toggle').addEventListener('click', () => {
-    const header = document.getElementById('apikey-toggle');
-    const body = document.getElementById('apikey-body');
-    header.classList.toggle('open');
-    body.classList.toggle('open');
-  });
 
   // Tabs
   document.querySelectorAll('.tab').forEach(tab => {
@@ -534,9 +494,6 @@
 
     const apiKey = document.getElementById('api-key').value.trim();
     if (!apiKey) {
-      // Open API key accordion and alert
-      document.getElementById('apikey-toggle').classList.add('open');
-      document.getElementById('apikey-body').classList.add('open');
       alert('APIキーを入力してください');
       return;
     }
