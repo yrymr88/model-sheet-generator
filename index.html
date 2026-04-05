@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ModelSheet">
+<meta name="theme-color" content="#0d0d0f">
+<link rel="manifest" href="manifest.json">
+<title>Model Sheet Generator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0d0d0f;
+    --surface: #1a1a1f;
+    --surface2: #222228;
+    --border: #2e2e38;
+    --accent: #c8f060;
+    --accent2: #60d0f0;
+    --text: #e8e8ec;
+    --muted: #5a5a68;
+    --danger: #f06060;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    display: flex;
+    flex-direction: column;
+    max-width: 430px;
+    margin: 0 auto;
+    padding-top: var(--safe-top);
+  }
+
+  header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    letter-spacing: -0.01em;
+    color: var(--accent);
+  }
+
+  header p {
+    font-size: 0.6rem;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .tab-bar {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 14px 0;
+    text-align: center;
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s;
+    user-select: none;
+  }
+
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .panel {
+    display: none;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(88px + var(--safe-bottom));
+  }
+
+  .panel.active { display: flex; }
+
+  .upload-area {
+    margin: 16px;
+    border: 1.5px dashed var(--border);
+    border-radius: 12px;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s, background 0.2s;
+    padding: 28px;
+  }
+
+  .upload-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+  }
+
+  .upload-icon { font-size: 2.2rem; opacity: 0.35; }
+
+  .upload-hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.55;
+  }
+
+  .upload-hint strong {
+    display: block;
+    color: var(--accent);
+    font-size: 0.88rem;
+    margin-bottom: 2px;
+  }
+
+  #preview-wrap {
+    margin: 0 16px 16px;
+    display: none;
+  }
+
+  .preview-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  #preview-img {
+    width: 100%;
+    max-height: 260px;
+    object-fit: contain;
+    display: block;
+    background: #111;
+  }
+
+  .preview-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface);
+  }
+
+  .preview-bar span {
+    font-size: 0.65rem;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 72%;
+  }
+
+  .change-btn {
+    font-size: 0.68rem;
+    color: var(--accent2);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  .section { margin: 0 16px 18px; }
+
+  .section-label {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding-left: 2px;
+  }
+
+  .field-input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 16px;
+    padding: 13px 16px;
+    transition: border-color 0.15s;
+    resize: none;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  .field-input:focus { outline: none; border-color: var(--accent2); }
+
+  .chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .chip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    padding: 9px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .chip.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(200,240,96,0.1);
+  }
+
+  /* API Key section */
+  .apikey-wrap {
+    margin: 0 16px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .apikey-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    cursor: pointer;
+  }
+
+  .apikey-header span {
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .apikey-header .arrow {
+    font-size: 0.65rem;
+    color: var(--muted);
+    transition: transform 0.2s;
+  }
+
+  .apikey-header.open .arrow { transform: rotate(180deg); }
+
+  .apikey-body {
+    display: none;
+    padding: 0 16px 14px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .apikey-body.open { display: flex; }
+
+  .apikey-note {
+    font-size: 0.62rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .apikey-note a { color: var(--accent2); text-decoration: none; }
+
+  .fab {
+    position: fixed;
+    bottom: calc(16px + var(--safe-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
+    max-width: 398px;
+    background: var(--accent);
+    color: #0d0d0f;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    padding: 18px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: opacity 0.15s;
+    box-shadow: 0 4px 24px rgba(200,240,96,0.22);
+    z-index: 100;
+  }
+
+  .fab:active { opacity: 0.85; }
+  .fab:disabled { opacity: 0.22; cursor: not-allowed; box-shadow: none; }
+
+  .output-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .status-text { font-size: 0.65rem; color: var(--muted); }
+  .status-text.loading { color: var(--accent2); }
+  .status-text.done { color: var(--accent); }
+  .status-text.error { color: var(--danger); }
+
+  .copy-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.65rem;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .copy-btn:active { transform: scale(0.95); }
+  .copy-btn.copied { border-color: var(--accent); color: var(--accent); }
+
+  #output-box {
+    flex: 1;
+    padding: 18px 20px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: pre-wrap;
+    font-size: 0.72rem;
+    line-height: 1.8;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  #output-box:empty::before {
+    content: "① 入力タブで画像を選択して\nプロンプト生成を押してください";
+    color: var(--muted);
+    font-size: 0.72rem;
+    white-space: pre;
+    line-height: 2.2;
+  }
+
+  .dot-anim::after {
+    content: '';
+    animation: dots 1.2s steps(4, end) infinite;
+  }
+
+  @keyframes dots {
+    0%   { content: ''; }
+    25%  { content: '.'; }
+    50%  { content: '..'; }
+    75%  { content: '...'; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>MODEL SHEET GENERATOR</h1>
+  <p>Gemini prompt builder — v1.2 PWA</p>
+</header>
+
+<div class="tab-bar">
+  <div class="tab active" data-tab="input">① 入力</div>
+  <div class="tab" data-tab="output">② 出力</div>
+</div>
+
+<!-- INPUT PANEL -->
+<div class="panel active" id="panel-input">
+
+  <div class="upload-area" id="upload-area">
+    <input type="file" id="file-input" accept="image/*">
+    <div class="upload-icon">🖼</div>
+    <div class="upload-hint">
+      <strong>タップして画像を選択</strong>
+      カメラロール / ファイルから選べます
+    </div>
+  </div>
+
+  <div id="preview-wrap">
+    <div class="preview-card">
+      <img id="preview-img" src="" alt="preview">
+      <div class="preview-bar">
+        <span id="preview-name"></span>
+        <button class="change-btn" id="change-btn">変更する</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-label">衣装名（任意）</div>
+    <input class="field-input" id="costume-name" type="text" placeholder="例: Classic Maid / Default Outfit">
+  </div>
+
+  <div class="section">
+    <div class="section-label">補足メモ（任意）</div>
+    <textarea class="field-input" id="extra-notes" rows="3" placeholder="例: 尻尾は必ずサメ型で固定&#10;例: 左目の泣きぼくろを必ず含める"></textarea>
+  </div>
+
+  <div class="section">
+    <div class="section-label">生成オプション</div>
+    <div class="chip-row">
+      <div class="chip active" data-key="triview">三面図レイアウト</div>
+      <div class="chip active" data-key="locked">LOCK制約文</div>
+      <div class="chip" data-key="palette">カラーパレット</div>
+      <div class="chip" data-key="parts">パーツ備考</div>
+    </div>
+  </div>
+
+  <!-- API KEY -->
+  <div class="apikey-wrap">
+    <div class="apikey-header" id="apikey-toggle">
+      <span>APIキー設定</span>
+      <span class="arrow">▼</span>
+    </div>
+    <div class="apikey-body" id="apikey-body">
+      <div class="apikey-note">
+        Anthropic APIキーを入力してください。<br>
+        端末内にのみ保存されます。<br>
+        <a href="https://console.anthropic.com" target="_blank">console.anthropic.com で取得</a>
+      </div>
+      <input class="field-input" id="api-key" type="password" placeholder="sk-ant-...">
+    </div>
+  </div>
+
+</div>
+
+<!-- OUTPUT PANEL -->
+<div class="panel" id="panel-output">
+  <div class="output-toolbar">
+    <span class="status-text" id="status-text">待機中</span>
+    <button class="copy-btn" id="copy-btn">COPY</button>
+  </div>
+  <div id="output-box"></div>
+</div>
+
+<button class="fab" id="gen-btn" disabled>▶ プロンプト生成</button>
+
+<script>
+  // Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(console.error);
+  }
+
+  let imageBase64 = null;
+  let imageMediaType = null;
+  const opts = { triview: true, locked: true, palette: false, parts: false };
+
+  // Restore API key
+  const savedKey = localStorage.getItem('anthropic_api_key');
+  if (savedKey) document.getElementById('api-key').value = savedKey;
+
+  // Save API key on change
+  document.getElementById('api-key').addEventListener('change', e => {
+    localStorage.setItem('anthropic_api_key', e.target.value.trim());
+  });
+
+  // API key accordion
+  document.getElementById('apikey-toggle').addEventListener('click', () => {
+    const header = document.getElementById('apikey-toggle');
+    const body = document.getElementById('apikey-body');
+    header.classList.toggle('open');
+    body.classList.toggle('open');
+  });
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Chips
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const k = chip.dataset.key;
+      opts[k] = !opts[k];
+      chip.classList.toggle('active', opts[k]);
+    });
+  });
+
+  // File
+  const fileInput = document.getElementById('file-input');
+  document.getElementById('change-btn').addEventListener('click', () => fileInput.click());
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) loadFile(fileInput.files[0]);
+  });
+
+  function loadFile(file) {
+    if (!file.type.startsWith('image/')) return;
+    imageMediaType = file.type;
+    const reader = new FileReader();
+    reader.onload = e => {
+      imageBase64 = e.target.result.split(',')[1];
+      document.getElementById('preview-img').src = e.target.result;
+      document.getElementById('preview-name').textContent = file.name;
+      document.getElementById('upload-area').style.display = 'none';
+      document.getElementById('preview-wrap').style.display = 'block';
+      document.getElementById('gen-btn').disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Generate
+  document.getElementById('gen-btn').addEventListener('click', async () => {
+    if (!imageBase64) return;
+
+    const apiKey = document.getElementById('api-key').value.trim();
+    if (!apiKey) {
+      // Open API key accordion and alert
+      document.getElementById('apikey-toggle').classList.add('open');
+      document.getElementById('apikey-body').classList.add('open');
+      alert('APIキーを入力してください');
+      return;
+    }
+
+    // Switch to output tab
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelector('[data-tab="output"]').classList.add('active');
+    document.getElementById('panel-output').classList.add('active');
+
+    document.getElementById('gen-btn').disabled = true;
+    document.getElementById('output-box').textContent = '';
+    setStatus('loading', 'Claude が画像を解析中');
+
+    const costumeName = document.getElementById('costume-name').value.trim() || 'Main Costume';
+    const extraNotes = document.getElementById('extra-notes').value.trim();
+
+    const optLines = [];
+    if (opts.triview) optLines.push('Include triview layout block (front / side / back)');
+    if (opts.locked) optLines.push('Include DO NOT / LOCK constraint lines');
+    if (opts.palette) optLines.push('Include Colors table with hex estimates');
+    if (opts.parts) optLines.push('Include Part Notes section');
+
+    const systemPrompt = `You are an expert anime character designer specializing in writing precise model sheet prompts for AI image generation (specifically Gemini).
+Your task: analyze the uploaded character illustration and output a COMPLETE model sheet prompt in the exact template format. Fill every field with accurate observations. Never leave placeholders — estimate and note "(est.)" if unclear.
+Output ONLY the raw prompt text. No markdown fences. No preamble. No commentary.`;
+
+    const userPrompt = `Analyze this character and output a filled model sheet prompt:
+
+## CHARACTER MASTER SHEET — [character name or "Original Character"]
+This sheet defines the canonical design. All generation requests must match exactly.
+DO NOT improvise any unspecified details.
+
+---
+
+### IDENTITY
+- Name: [fill]
+- Series/Origin: [fill or "Original"]
+- Art style: anime illustration, 2D flat shading, clean lineart
+
+### BODY
+- Height impression: [fill]
+- Build: [fill]
+- Skin tone: [fill]
+- Hair: color=[fill], length=[fill], style=[fill]
+- Eyes: color=[fill], shape=[fill]
+- Notable features: [list ALL unusual features: tails, ears, markings, etc.]
+
+### COSTUME — ${costumeName}
+#### Silhouette
+- [overall silhouette in one line]
+
+#### Part Details (LOCKED)
+| Part | Description |
+|------|-------------|
+| Collar | [fill] |
+| Cuffs | [fill] |
+| Top/Bodice | [fill] |
+| Skirt/Bottom | [fill] |
+| Belt | [fill or "none"] |
+| Footwear | [fill] |
+| Accessories | [fill or "none"] |
+| Outerwear | [fill or "none"] |
+${opts.palette ? `
+#### Colors (LOCKED)
+| Element | Hex / Description |
+|---------|-------------------|
+| [fill] | [fill] |
+| [fill] | [fill] |
+| [fill] | [fill] |` : ''}
+${opts.parts ? `
+#### Part Notes
+[Structural observations: asymmetry, removable elements, layering order]` : ''}
+
+${opts.locked ? `---
+DO NOT add items not listed above.
+DO NOT change collar, cuff, or apron details.
+DO NOT alter hair color, length, or style.
+LOCK all Notable features — must appear in every generation.` : ''}
+${opts.triview ? `
+---
+
+## GENERATION REQUEST — Full Model Sheet
+
+Using the CHARACTER MASTER SHEET above, generate a single reference image:
+
+Layout: white background, no decorative elements
+Figures:
+  - Center: full body front view, neutral A-pose, expressionless
+  - Left: full body side view (character's right side)
+  - Right: full body back view
+
+Costume accuracy: follow Part Details table exactly
+Line quality: clean black lineart, uniform weight
+Shading: flat cel shading, no gradients` : ''}
+${extraNotes ? `\nAdditional notes: ${extraNotes}` : ''}
+
+Options: ${optLines.join('; ')}`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-opus-4-6',
+          max_tokens: 1500,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: imageMediaType, data: imageBase64 } },
+              { type: 'text', text: userPrompt }
+            ]
+          }],
+          system: systemPrompt
+        })
+      });
+
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const text = data.content.map(b => b.text || '').join('');
+      document.getElementById('output-box').textContent = text;
+      setStatus('done', '✓ 完了 — COPYしてGeminiへ貼り付け');
+    } catch (err) {
+      setStatus('error', '✗ ' + err.message);
+    } finally {
+      document.getElementById('gen-btn').disabled = false;
+    }
+  });
+
+  function setStatus(type, msg) {
+    const el = document.getElementById('status-text');
+    el.className = 'status-text ' + type;
+    el.innerHTML = type === 'loading' ? `<span class="dot-anim">${msg}</span>` : msg;
+  }
+
+  document.getElementById('copy-btn').addEventListener('click', () => {
+    const text = document.getElementById('output-box').textContent;
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('copy-btn');
+      btn.textContent = 'COPIED ✓';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'COPY'; btn.classList.remove('copied'); }, 2000);
+    });
+  });
+</script>
+</body>
+</html>
